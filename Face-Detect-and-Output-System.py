@@ -1,7 +1,9 @@
 #Language:Python
-#Dependence:OpenCV&NumPy
+#Dependence:OpenCV&NumPy&Pillow
 #Code:utf-8
 import cv2,os
+from PIL import Image
+from PyCameraList.camera_device import list_video_devices
 Version=1.5
 print("Welcome to Face Detect and Output System.")
 print("System Version:",Version," Developed by Peppa Wang")
@@ -43,9 +45,16 @@ def detect(imgread,scale,neighbors,minsz,read,frame):
     return facenum
 total=0
 framenum=0
+raw_list=['.cr2','.CR2','.cr3','.CR3','.arw','.ARW','.dng','.DNG','.nef','.NEF','.raf','.RAF','.rw2','.RW2','.orf','.ORF']
 face=cv2.CascadeClassifier("haarcascade_frontalface.xml")
 current=os.path.dirname(os.path.abspath(__file__))
 outpath=current +'\Output'
+temppath=current +'\Temp'
+temp_list=os.listdir(temppath)
+if len(temp_list)!=0:
+    for temp in temp_list:
+        tempfile=temppath+"\\"+temp
+        os.remove(tempfile)
 print("Detect mode? Please enter 1 or 2 to determine the detect mode.")
 print("1-Picture detection    2-Camera video detection")
 mode=int(input(''))
@@ -78,6 +87,8 @@ if mode==1:
     jpgnum=0
     bmpnum=0
     pngnum=0
+    rawnum=0
+    rawpic_list=[]
     wrong_list=[]
     wrong_size=0
     if maxnum==0:
@@ -100,6 +111,9 @@ if mode==1:
                 bmpnum+=1
             elif extension==".png" or extension==".PNG":
                 pngnum+=1
+            elif extension in raw_list:
+                rawnum+=1
+                rawpic_list.append(name)
             else:
                 print("The picture",name,"has the wrong format name,the program won't process it.")
                 wrong_list.append(name)
@@ -121,20 +135,36 @@ if mode==1:
             print("    PNG format picture number:",pngnum)
         if bmpnum!=0:
             print("    BMP format picture number:",bmpnum)
+        if rawnum!=0:
+            print("    RAW format picture number:",rawnum)
         print("")
         print("Start Processing!")
         print("")
         for read in file_list:
             if read not in wrong_list:
-                facenum=0
                 print("Processing "+read+"...")
-                imgread = cv2.imread(os.path.join(inpath,read))
+                if read in rawpic_list:
+                    rawfile=inpath+"\\"+read
+                    raw_img = Image.open(rawfile)
+                    tempname=temppath+"\\"+read+".PNG"
+                    raw_img.save(tempname, format='PNG')
+                    imgread=cv2.imread(tempname)
+                else:
+                    imgread = cv2.imread(os.path.join(inpath,read))
+                facenum=0
                 facenumber=detect(imgread,scale,neighbors,minsz,read,0)
                 print("    Picture",read,":",facenumber,"Faces")
         print("")
 if mode==2:
+    cameras = list_video_devices()
+    cammax=len(cameras)-1
+    print("There are",cammax+1,"Cameras that you can choose.Please key the number to choose a camera for capture.")
+    print(dict(cameras))
+    cameranum=entervalue(cammax,0,"Camera number")
+    cam=cv2.VideoCapture(int(cameranum))
+    camrate=int(cam.get(5))
     outputpicformat=enterformat('Output')
-    framerate=entervalue(60,1,"Frame rate")
+    framerate=entervalue(camrate,1,"Frame rate")
     speed=entervalue(10,0,"Detece speed")
     accuracy=entervalue(10,1,"Detece accuracy")
     scale=round(1.05+(speed)/100,2)
@@ -149,7 +179,6 @@ if mode==2:
         print("To prevent data loss caused by overwriting, please empty all files in the 'Output' folder!")
         os.system("pause")
         exit()
-    cam=cv2.VideoCapture(0)
     print("If you have already confirmed the settings, please press 'Enter' key to start processing.")
     confirm=input()
     while(cam.isOpened()):
@@ -163,6 +192,11 @@ if mode==2:
     cam.release()
     cv2.destroyWindow('Face-Detect-and-Output-System')
 print("Done!")
+temp_list=os.listdir(temppath)
+if len(temp_list)!=0:
+    for temp in temp_list:
+        tempfile=temppath+"\\"+temp
+        os.remove(tempfile)
 print("")
 total=len(os.listdir(outpath))
 print("Total number of output pictures:",total)
