@@ -8,6 +8,9 @@ Version=1.5
 print("Welcome to Face Detect and Output System.")
 print("System Version:",Version," Developed by Peppa Wang")
 print("")
+def direxist(name):
+    if not os.path.exists(name):
+        os.makedirs(name)
 def get_folder_size(folder):
     size=0
     for root, dirs, files in os.walk(folder):
@@ -46,11 +49,21 @@ def detect(imgread,scale,neighbors,minsz,read,frame):
 total=0
 framenum=0
 raw_list=['.cr2','.CR2','.cr3','.CR3','.arw','.ARW','.dng','.DNG','.nef','.NEF','.raf','.RAF','.rw2','.RW2','.orf','.ORF']
-face=cv2.CascadeClassifier("haarcascade_frontalface.xml")
+direxist('Input')
+direxist('Output')
+direxist('Temp')
 current=os.path.dirname(os.path.abspath(__file__))
 outpath=current +'\Output'
 temppath=current +'\Temp'
 temp_list=os.listdir(temppath)
+xmlpath=current+"\\haarcascade_frontalface.xml"
+print(xmlpath)
+if not os.path.isfile(xmlpath):
+    print("There isn'the detection model for this program!")
+    os.system("pause")
+    exit() 
+else:
+    face=cv2.CascadeClassifier("haarcascade_frontalface.xml")
 if len(temp_list)!=0:
     for temp in temp_list:
         tempfile=temppath+"\\"+temp
@@ -62,7 +75,13 @@ while mode != 1 and mode!= 2:
     print("You have entered an illegal mode, please re-enter it.")
     mode=int(input(''))
 print("Output folder path:",outpath)
-
+out_file_num=len(os.listdir(outpath))
+if out_file_num!=0:
+    print("")
+    print("There are already some files located in the 'Output' folder!")
+    print("To prevent data loss caused by overwriting, please empty all files in the 'Output' folder!")
+    os.system("pause")
+    exit()
 if mode==1:
     inpath=current + '\Input'
     print("Input folder path:",inpath)
@@ -94,12 +113,6 @@ if mode==1:
     if maxnum==0:
         print("")
         print("Done!")
-        os.system("pause")
-        exit()
-    elif out_file_num!=0:
-        print("")
-        print("There are already some files located in the 'Output' folder!")
-        print("To prevent data loss caused by overwriting, please empty all files in the 'Output' folder!")
         os.system("pause")
         exit()
     else:
@@ -172,13 +185,6 @@ if mode==2:
     minsz=int(accuracy*2)+10
     print("")
     print("Detect Factor: scaleFactor=",scale,", minNeighbors=",neighbors,", minSize= (",minsz,",",minsz,")",sep='')
-    out_file_num=len(os.listdir(outpath))
-    if out_file_num!=0:
-        print("")
-        print("There are already some files located in the 'Output' folder!")
-        print("To prevent data loss caused by overwriting, please empty all files in the 'Output' folder!")
-        os.system("pause")
-        exit()
     print("If you have already confirmed the settings, please press 'Enter' key to start processing.")
     confirm=input()
     while(cam.isOpened()):
